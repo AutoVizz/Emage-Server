@@ -1,0 +1,6 @@
+* text=auto
+
+# Binary fixtures must never be normalized
+*.j2k binary
+*.png binary
+*.ppm binary

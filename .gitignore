@@ -4,3 +4,8 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 .env
+
+# IDE
+.idea/
+*.user
+*.iml

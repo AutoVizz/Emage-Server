@@ -1,3 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="compose.yaml" />
+  </Folder>
   <Project Path="Emage/Emage.csproj" />
+  <Project Path="Emage.Tests/Emage.Tests.csproj" />
 </Solution>

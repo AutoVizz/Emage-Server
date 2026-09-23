@@ -1,0 +1,16 @@
+services:
+  emage:
+    image: emage
+    build:
+      context: .
+      dockerfile: Emage/Dockerfile
+    ports:
+      - "3233:3233"
+    environment:
+      Emage__UploadPassword: ${EMAGE_UPLOAD_PASSWORD:-}
+    volumes:
+      - emage-images:/data/images
+    restart: unless-stopped
+
+volumes:
+  emage-images:
