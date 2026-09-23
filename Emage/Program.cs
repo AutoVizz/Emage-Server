@@ -46,10 +46,10 @@ foreach (var endpoint in specEndpoints)
 		{ Method: "GET", OperationId: "listImages" } => app.MapGet(endpoint.Route, handlers.ListImages),
 		_ => throw new InvalidOperationException($"Unsupported spec operation '{endpoint.Method} {endpoint.OperationId}'")
 	};
-	route.WithOpenApi(operation =>
+	route.AddOpenApiOperationTransformer((operation, _, _) =>
 	{
 		operation.OperationId = endpoint.OperationId;
-		return operation;
+		return Task.CompletedTask;
 	});
 }
 
