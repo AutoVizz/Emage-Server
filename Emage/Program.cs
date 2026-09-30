@@ -1,5 +1,7 @@
 using Emage.Imaging.J2k;
 using Emage.OpenApi;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Routing;
 
@@ -17,9 +19,17 @@ builder.Services.AddSingleton(sp =>
 });
 
 builder.Services.AddOpenApi();
+// Every X-Emage-* response header must be listed here or browser JS cannot read
+// it cross-origin. The server sets five: Framing, Layers, TotalLayers,
+// RemainingLayers and TilePsotOffsets.
+var emageResponseHeaders = new[]
+{
+	"X-Emage-Framing", "X-Emage-Layers", "X-Emage-TotalLayers",
+	"X-Emage-RemainingLayers", "X-Emage-TilePsotOffsets"
+};
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 	policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
-		.WithExposedHeaders("X-Emage-LayerCountOffset", "X-Emage-TilePsotOffsets", "X-Emage-Framing")));
+		.WithExposedHeaders(emageResponseHeaders)));
 
 var app = builder.Build();
 
@@ -30,6 +40,23 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+// Registered after UseCors so the CORS middleware still has a say in the
+// response: an unhandled exception used to return a bare 500 with no
+// Access-Control-Allow-Origin, which a browser reports as "CORS failed" and
+// hides the real status. Handling it here keeps server faults diagnosable.
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+{
+	Exception? error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+	app.Logger.LogError(error, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+	context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+	await context.Response.WriteAsJsonAsync(new ProblemDetails
+	{
+		Status = StatusCodes.Status500InternalServerError,
+		Title = "Internal server error",
+		Detail = error?.Message,
+		Instance = context.Request.Path
+	});
+}));
 
 var library = app.Services.GetRequiredService<J2kImageLibrary>();
 var handlers = new EndpointHandlers(library, uploadPassword);

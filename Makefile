@@ -30,4 +30,5 @@ ps:
 	docker compose ps
 
 seed:
-	docker cp Emage/images/encrypted.j2k `docker compose ps -q`:/data/images/encrypted.j2k
+	docker cp images/encrypted.j2k `docker compose ps -q emage`:/data/images/encrypted.j2k
+	docker compose exec -T --user root emage sh -c 'chown -R $$APP_UID:$$APP_UID /data/images'

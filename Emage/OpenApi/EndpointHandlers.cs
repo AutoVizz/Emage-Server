@@ -42,11 +42,13 @@ public sealed class EndpointHandlers
             http.Response.Headers["X-Emage-Layers"] = $"{first}:{last}";
             http.Response.Headers["X-Emage-TotalLayers"] = image.Codestream.NumLayers.ToString();
             http.Response.Headers["X-Emage-RemainingLayers"] = (image.Codestream.NumLayers - last - 1).ToString();
-            if (slice.LayerCountOffset >= 0)
-                http.Response.Headers["X-Emage-LayerCountOffset"] = slice.LayerCountOffset.ToString();
             if (slice.TilePsotOffsets.Length > 0)
                 http.Response.Headers["X-Emage-TilePsotOffsets"] = string.Join(',', slice.TilePsotOffsets);
-            byte[] payload = raw.Equals("all", StringComparison.OrdinalIgnoreCase) ? slice.WithEoc() : slice.Data;
+            // A window that starts at level 0 carries the main headers, so it is a
+            // codestream in its own right and is terminated with EOC. Without it
+            // OpenJPEG does not report a truncated tile-part, it keeps asking for
+            // the next tile-part and never returns.
+            byte[] payload = slice.IncludesHeaders ? slice.WithEoc() : slice.Data;
             return Results.Bytes(payload, "image/jp2");
         }
         catch (J2kException ex)
@@ -168,7 +170,6 @@ public sealed class EndpointHandlers
             tileSize = new { width = codestream.XTsiz, height = codestream.YTsiz },
             tiles = codestream.TileParts.Select(tp => tp.TileIndex).Distinct().Count(),
             layers = codestream.NumLayers,
-            resolutions = codestream.NumResolutions,
             progression = codestream.ProgressionOrder.ToString(),
             scod = codestream.Scod,
             sop = codestream.HasSop,

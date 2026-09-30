@@ -54,5 +54,9 @@ public sealed class J2kCodestream
     public int Width => (int)(Xsiz - XOsiz);
     public int Height => (int)(Ysiz - YOsiz);
 
-    public int PacketsPerLayer => Packets.Count / Math.Max(1, NumLayers);
+    /// Packets grouped by the addressable progression index, which is the DWT
+    /// resolution level. Reported per resolution because quality layers are
+    /// unused, so a "layer" here always means a resolution level.
+    public int PacketsPerLayer =>
+        Packets.Count / Math.Max(1, NumLayers);
 }

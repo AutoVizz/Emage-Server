@@ -63,7 +63,10 @@ public static class J2kCodestreamParser
             Components = comps,
             Scod = scod,
             ProgressionOrder = progression,
-            NumLayers = layers,
+            // This project does not use JPEG 2000 quality layers; the encoder always
+            // emits a single layer. The addressable progression dimension is the DWT
+            // resolution pyramid, so "layers" always means resolution levels.
+            NumLayers = numRes,
             NumResolutions = numRes,
             MainSegments = main.ToArray(),
             TileParts = tileParts,
@@ -214,7 +217,9 @@ public static class J2kCodestreamParser
             int len = pltLengths[i];
             tilePart.Packets.Add(new J2kPacket
             {
-                Layer = combos[i].Layer,
+                // Quality layers are unused, so the addressable index is always the
+                // resolution level. With a single quality layer this is a 1:1 mapping.
+                Layer = combos[i].Res,
                 Offset = offset,
                 Length = len
             });

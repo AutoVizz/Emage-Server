@@ -1,6 +1,6 @@
 namespace Emage.Imaging.J2k;
 
-public sealed record J2kSlice(byte[] Data, bool IncludesHeaders, int LayerCountOffset, int[] TilePsotOffsets)
+public sealed record J2kSlice(byte[] Data, bool IncludesHeaders, int[] TilePsotOffsets)
 {
     public static readonly byte[] Eoc = { 0xff, 0xd9 };
 
@@ -16,9 +16,18 @@ public sealed record J2kSlice(byte[] Data, bool IncludesHeaders, int LayerCountO
 
 public static class J2kLayerExtractor
 {
-    private const byte Soc = 0x4f, Cod = 0x52, Tlm = 0x55, Plm = 0x57, Plt = 0x58, Ppm = 0x60, Ppt = 0x61,
+    private const byte Soc = 0x4f, Tlm = 0x55, Plm = 0x57, Plt = 0x58, Ppm = 0x60, Ppt = 0x61,
         Sot = 0x90, Sod = 0x93;
 
+    // Emit the packets of resolution levels `firstLayer..lastLayer` as a codestream.
+    //
+    // A resolution level's pixel geometry comes from SIZ together with COD's
+    // decomposition count, not from where its packets sit in the body, so the main
+    // headers are copied verbatim — including that count. Renumbering the retained
+    // levels from 0 rescales the image instead of coarsening it: a 0:0 window of a
+    // 512x512/6-level codestream would decode as 512x512 rather than 16x16. The
+    // window simply carries fewer packets, and a decoder reduces by
+    // `NumResolutions - 1 - lastLayer` halvings to read it.
     public static J2kSlice Slice(byte[] data, J2kCodestream codestream, int firstLayer, int lastLayer)
     {
         if (firstLayer < 0 || lastLayer >= codestream.NumLayers || firstLayer > lastLayer)
@@ -29,14 +38,8 @@ public static class J2kLayerExtractor
         if (!codestream.HasPlt)
             throw new J2kException(
                 "Codestream has no PLT marker; packet boundaries are unavailable, layer slicing is not supported");
-        if (codestream.ProgressionOrder != J2kProgressionOrder.Lrcp && firstLayer != 0)
-            throw new J2kException(
-                $"Progression {codestream.ProgressionOrder} only supports prefix slicing (first layer must be 0)");
-
-        int newLayers = lastLayer - firstLayer + 1;
 
         using var output = new MemoryStream();
-        int? layerCountOffset = null;
         var psotOffsets = new List<int>();
 
         if (firstLayer == 0)
@@ -54,15 +57,6 @@ public static class J2kLayerExtractor
                         break;
                     default:
                         output.Write(data, (int)seg.Offset, seg.Span);
-                        if (seg.Code == Cod)
-                        {
-                            long layersPos = output.Position - seg.Span + 6;
-                            layerCountOffset = (int)layersPos;
-                            output.Position = layersPos;
-                            output.WriteByte((byte)(newLayers >> 8));
-                            output.WriteByte((byte)newLayers);
-                            output.Position = output.Length;
-                        }
                         break;
                 }
             }
@@ -110,7 +104,7 @@ public static class J2kLayerExtractor
                 }
         }
 
-        return new J2kSlice(output.ToArray(), firstLayer == 0, layerCountOffset ?? -1, psotOffsets.ToArray());
+        return new J2kSlice(output.ToArray(), firstLayer == 0, psotOffsets.ToArray());
     }
 
     private static void WriteBe16(MemoryStream output, int value)
