@@ -97,6 +97,11 @@ public sealed class EndpointHandlers
             Directory.CreateDirectory(dir);
         await File.WriteAllBytesAsync(fullPath, data);
 
+        // The cache holds both the parsed structure and the raw bytes, so a
+        // re-upload to an existing path would otherwise keep serving the
+        // previous version indefinitely. Evict only after the write succeeded.
+        _library.Invalidate(path ?? string.Empty);
+
         return Results.Ok(new
         {
             stored = path,

@@ -51,6 +51,21 @@ public sealed class J2kImageLibrary
         }
     }
 
+    /// <summary>
+    /// Drop the cached parse for a path so the next read re-reads from disk.
+    /// Must be called after a caller has overwritten the file behind it: the
+    /// cache holds both the parsed structure and the raw bytes, so without this
+    /// a re-upload keeps serving the previous version until the process restarts.
+    /// </summary>
+    public void Invalidate(string relative)
+    {
+        if (string.IsNullOrWhiteSpace(relative)) return;
+        if (TryResolve(relative, out string fullPath))
+        {
+            _cache.TryRemove(fullPath, out _);
+        }
+    }
+
     public IEnumerable<(string RelativePath, long Length)> EnumerateImages()
     {
         if (!Directory.Exists(_root)) yield break;

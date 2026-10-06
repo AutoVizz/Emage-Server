@@ -250,6 +250,39 @@ public class J2kTests : IDisposable
         Assert.True(File.Exists(fullPath));
     }
 
+    [Fact]
+    public void ImageLibrary_Invalidate_DropsTheStaleParse()
+    {
+        // The cache holds both the parsed structure and the raw bytes, so
+        // overwriting a file behind it leaves the old version being served.
+        string dir = Directory.CreateTempSubdirectory("emage-invalidate").FullName;
+        try
+        {
+            byte[] first = File.ReadAllBytes(Path.Combine(_fixtures, "sample.lrcp.j2k"));
+            byte[] second = File.ReadAllBytes(Path.Combine(_fixtures, "sample.rlcp.j2k"));
+            string name = "swap.j2k";
+            File.WriteAllBytes(Path.Combine(dir, name), first);
+
+            var library = new J2kImageLibrary(dir);
+            Assert.True(library.TryGet(name, out var a));
+            Assert.Equal(first.Length, a.Data.Length);
+
+            // Overwrite the file without telling the library.
+            File.WriteAllBytes(Path.Combine(dir, name), second);
+            Assert.True(library.TryGet(name, out var stillStale));
+            Assert.Equal(first.Length, stillStale.Data.Length);
+
+            // Once invalidated it re-reads from disk.
+            library.Invalidate(name);
+            Assert.True(library.TryGet(name, out var fresh));
+            Assert.Equal(second.Length, fresh.Data.Length);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private bool Decode(string input, string output)
     {
         if (!TryFindOpjDecompress(out string exe)) return false;
