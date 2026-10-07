@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace Emage.Imaging.J2k;
 
@@ -6,6 +7,7 @@ public sealed class IndexedImage
 {
     public required byte[] Data { get; init; }
     public required J2kCodestream Codestream { get; init; }
+    public JsonElement? Metadata { get; init; }
 }
 
 public sealed class J2kImageLibrary
@@ -107,7 +109,7 @@ public sealed class J2kImageLibrary
             return false;
         }
 
-        image = new IndexedImage { Data = data, Codestream = codestream };
+        image = new IndexedImage { Data = data, Codestream = codestream, Metadata = J2kMetadata.Read(data, codestream) };
         _cache[fullPath] = image;
         return true;
     }

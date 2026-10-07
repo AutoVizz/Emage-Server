@@ -28,7 +28,8 @@ public sealed class EndpointHandlers
                 layers = image.Codestream.NumLayers,
                 width = image.Codestream.Width,
                 height = image.Codestream.Height,
-                bytes = image.Data.Length
+                bytes = image.Data.Length,
+                metadata = image.Metadata
             });
 
         if (!TryParseRange(raw, image.Codestream.NumLayers, out int first, out int last))
@@ -108,7 +109,8 @@ public sealed class EndpointHandlers
             layers = parsed.NumLayers,
             width = parsed.Width,
             height = parsed.Height,
-            bytes = data.Length
+            bytes = data.Length,
+            metadata = J2kMetadata.Read(data, parsed)
         });
     }
 
