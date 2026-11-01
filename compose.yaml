@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Emage/Dockerfile
+      additional_contexts:
+        wasm-source: ../../CLionProjects/EmageWasm
     ports:
       - "3233:3233"
     environment:

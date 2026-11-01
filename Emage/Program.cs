@@ -40,6 +40,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseStaticFiles();
 // Registered after UseCors so the CORS middleware still has a say in the
 // response: an unhandled exception used to return a bare 500 with no
 // Access-Control-Allow-Origin, which a browser reports as "CORS failed" and

@@ -22,3 +22,5 @@
 **/values.dev.yaml
 LICENSE
 README.md
+# Docker compiles the WASM assets from the named wasm-source context.
+Emage/wwwroot/wasm/
