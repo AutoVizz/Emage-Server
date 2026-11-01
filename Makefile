@@ -1,6 +1,5 @@
 IMAGE ?= emage
 PORT ?= 3233
-WASM_SOURCE ?= ../../CLionProjects/EmageWasm
 DOTNET ?= $(HOME)/.dotnet/dotnet
 export DOTNET_ROOT ?= $(HOME)/.dotnet
 
@@ -16,7 +15,7 @@ run:
 	$(DOTNET) run --no-launch-profile --project Emage/Emage.csproj -c Release --urls=http://localhost:$(PORT)
 
 docker-build:
-	docker build --build-context wasm-source=$(WASM_SOURCE) -t $(IMAGE) -f Emage/Dockerfile .
+	docker build -t $(IMAGE) -f Emage/Dockerfile .
 
 up:
 	docker compose up -d --build
